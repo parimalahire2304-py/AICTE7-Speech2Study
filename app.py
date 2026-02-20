@@ -16,21 +16,32 @@ genai.configure(api_key=GEMINI_API_KEY)
 
 
 def get_youtube_transcript(video_id):
-    """
-    Fetches English transcript from YouTube video.
-    Returns transcript text or None.
-    """
     try:
-        api = YouTubeTranscriptApi()
-        fetched_transcript = api.fetch(video_id, languages=['en'])
+        transcript_list = YouTubeTranscriptApi.list_transcripts(video_id)
 
-       
-        raw_data = fetched_transcript.to_raw_data()
+        # Try manual English
+        try:
+            transcript = transcript_list.find_manually_created_transcript(["en"])
+        except:
+            # Try auto English
+            try:
+                transcript = transcript_list.find_generated_transcript(["en"])
+            except:
+                # Try any available language
+                transcript = transcript_list.find_transcript(
+                    [t.language_code for t in transcript_list]
+                )
 
-        return " ".join([item["text"] for item in raw_data])
+        data = transcript.fetch()
 
-    except Exception as e:
-        st.error(f"Transcript Error: {e}")
+        if not data:
+            raise Exception("Empty transcript")
+
+        return " ".join(item["text"] for item in data)
+
+    except Exception:
+        st.warning("⚠️ This video does not allow transcript access.")
+        st.info("Try using Audio Upload instead.")
         return None
 
 
