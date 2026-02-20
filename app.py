@@ -15,8 +15,7 @@ if "GEMINI_API_KEY" not in st.secrets:
 genai.configure(api_key=GEMINI_API_KEY)
 
 
-from youtube_transcript_api import YouTubeTranscriptApi
-import streamlit as st
+
 
 @st.cache_data(show_spinner=False)
 def get_youtube_transcript(video_id):
