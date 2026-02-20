@@ -15,34 +15,49 @@ if "GEMINI_API_KEY" not in st.secrets:
 genai.configure(api_key=GEMINI_API_KEY)
 
 
+from youtube_transcript_api import YouTubeTranscriptApi
+import streamlit as st
+
+@st.cache_data(show_spinner=False)
 def get_youtube_transcript(video_id):
     try:
         transcript_list = YouTubeTranscriptApi.list_transcripts(video_id)
 
-        # Try manual English
+        # 1. Try English first
         try:
-            transcript = transcript_list.find_manually_created_transcript(["en"])
-        except:
-            # Try auto English
-            try:
-                transcript = transcript_list.find_generated_transcript(["en"])
-            except:
-                # Try any available language
-                transcript = transcript_list.find_transcript(
-                    [t.language_code for t in transcript_list]
-                )
+            transcript = transcript_list.find_transcript(["en"])
+            data = transcript.fetch()
+            return " ".join([i["text"] for i in data])
 
+        except:
+            pass
+
+        # 2. Try Marathi
+        try:
+            transcript = transcript_list.find_transcript(["mr"])
+            transcript = transcript.translate("en")
+            data = transcript.fetch()
+
+            st.info("Translated from Marathi → English")
+            return " ".join([i["text"] for i in data])
+
+        except:
+            pass
+
+        # 3. Fallback: Use first available language
+        transcript = next(iter(transcript_list))
+        transcript = transcript.translate("en")
         data = transcript.fetch()
 
-        if not data:
-            raise Exception("Empty transcript")
+        st.info(f"Translated from {transcript.language} → English")
 
-        return " ".join(item["text"] for item in data)
+        return " ".join([i["text"] for i in data])
 
-    except Exception:
-        st.warning("⚠️ This video does not allow transcript access.")
+    except Exception as e:
+        st.warning("⚠️ YouTube is currently blocking requests.")
         st.info("Try using Audio Upload instead.")
         return None
+
 
 
 def generate_ai_content(content_input, task_type, is_audio=False):
