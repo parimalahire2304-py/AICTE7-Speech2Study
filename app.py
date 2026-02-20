@@ -5,13 +5,10 @@ import re
 from tempfile import NamedTemporaryFile
 from youtube_transcript_api import YouTubeTranscriptApi
 
-
-GEMINI_API_KEY = st.secrets["GEMINI_API_KEY"]
-
 if "GEMINI_API_KEY" not in st.secrets:
     st.error("API key not found. Check secrets.toml")
     st.stop()
-
+GEMINI_API_KEY = st.secrets["GEMINI_API_KEY"]
 genai.configure(api_key=GEMINI_API_KEY)
 
 
