@@ -19,7 +19,7 @@ def get_youtube_transcript(video_id):
     try:
         transcript_list = YouTubeTranscriptApi.list_transcripts(video_id)
 
-        # 1. Try English first
+        
         try:
             transcript = transcript_list.find_transcript(["en"])
             data = transcript.fetch()
@@ -28,7 +28,7 @@ def get_youtube_transcript(video_id):
         except:
             pass
 
-        # 2. Try Marathi
+    
         try:
             transcript = transcript_list.find_transcript(["mr"])
             transcript = transcript.translate("en")
@@ -40,7 +40,7 @@ def get_youtube_transcript(video_id):
         except:
             pass
 
-        # 3. Fallback: Use first available language
+        
         transcript = next(iter(transcript_list))
         transcript = transcript.translate("en")
         data = transcript.fetch()
@@ -90,14 +90,36 @@ st.title("🎓 Speech2Study")
 st.caption("Transform YouTube videos or Voice Recordings into structured study material in seconds.")
 
 # Tabs
-tab_yt, tab_audio = st.tabs(["📺 YouTube Link", "🎙️ Audio Upload"])
+tab_audio , tab_yt = st.tabs(["🎙️ Audio Upload","📺 YouTube Link" ])
 
 # Task selector
 task = st.selectbox(
     "What should I generate?",
     ["Notes", "Quiz", "Flashcards"]
 )
+with tab_audio:
+    uploaded_file = st.file_uploader(
+        "Upload Audio",
+        type=["mp3", "wav", "m4a"]
+    )
 
+    if uploaded_file and st.button("Process Audio"):
+        with NamedTemporaryFile(delete=False, suffix=".mp3") as tmp:
+            tmp.write(uploaded_file.getvalue())
+            tmp_path = tmp.name
+
+        try:
+            with st.spinner("Speech2study is analyzing your audio..."):
+                result = generate_ai_content(
+                    tmp_path,
+                    task,
+                    is_audio=True
+                )
+                st.write(result)
+
+        finally:
+            if os.path.exists(tmp_path):
+                os.unlink(tmp_path)
 with tab_yt:
     yt_url = st.text_input("Enter YouTube URL:")
 
@@ -116,26 +138,3 @@ with tab_yt:
                     result = generate_ai_content(transcript, task)
                     st.write(result)
 
-with tab_audio:
-    uploaded_file = st.file_uploader(
-        "Upload Audio",
-        type=["mp3", "wav", "m4a"]
-    )
-
-    if uploaded_file and st.button("Process Audio"):
-        with NamedTemporaryFile(delete=False, suffix=".mp3") as tmp:
-            tmp.write(uploaded_file.getvalue())
-            tmp_path = tmp.name
-
-        try:
-            with st.spinner("Gemini is analyzing your audio..."):
-                result = generate_ai_content(
-                    tmp_path,
-                    task,
-                    is_audio=True
-                )
-                st.write(result)
-
-        finally:
-            if os.path.exists(tmp_path):
-                os.unlink(tmp_path)
